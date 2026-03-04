@@ -106,4 +106,3 @@ func decrypt(key, data []byte) ([]byte, error) {
 	}
 	return plaintext, nil
 }
-
