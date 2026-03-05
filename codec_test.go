@@ -354,3 +354,4 @@ func TestCORSMiddleware(t *testing.T) {
 		t.Fatalf("CORS origin: got %q", got)
 	}
 }
+
