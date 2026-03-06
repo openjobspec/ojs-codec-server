@@ -19,3 +19,4 @@ clean:
 
 docker-build:
 	docker build -t ojs-codec-server .
+
