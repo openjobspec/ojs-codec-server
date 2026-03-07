@@ -14,3 +14,4 @@ COPY --from=builder /ojs-codec-server /usr/local/bin/ojs-codec-server
 EXPOSE 8089
 
 ENTRYPOINT ["ojs-codec-server"]
+
