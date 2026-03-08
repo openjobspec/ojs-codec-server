@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -20,16 +24,41 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/codec/encode", handleEncode(provider))
 	mux.HandleFunc("/codec/decode", handleDecode(provider))
+	mux.HandleFunc("/codec/keys", handleListKeys(provider))
 	mux.HandleFunc("/health", handleHealth)
 
 	handler := corsMiddleware(mux)
 
 	addr := ":" + port
-	slog.Info("starting OJS Codec Server", "addr", addr, "key_id", provider.CurrentKeyID())
-	if err := http.ListenAndServe(addr, handler); err != nil {
-		slog.Error("server error", "error", err)
-		os.Exit(1)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      handler,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+
+	// Graceful shutdown on SIGINT/SIGTERM
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		slog.Info("starting OJS Codec Server", "addr", addr, "key_id", provider.CurrentKeyID())
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("server error", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	<-done
+	slog.Info("shutting down codec server")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		slog.Error("shutdown error", "error", err)
+	}
+	slog.Info("codec server stopped")
 }
 
 // loadKeys reads encryption keys from environment variables.

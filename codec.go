@@ -59,6 +59,17 @@ func (p *MultiKeyProvider) CurrentKeyID() string {
 	return p.currentID
 }
 
+// ListKeyIDs returns all registered key IDs (without exposing key material).
+func (p *MultiKeyProvider) ListKeyIDs() []string {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	ids := make([]string, 0, len(p.keys))
+	for id := range p.keys {
+		ids = append(ids, id)
+	}
+	return ids
+}
+
 // encrypt encrypts plaintext using AES-256-GCM.
 // Returns: nonce (12 bytes) || ciphertext (N bytes) || GCM tag (16 bytes).
 func encrypt(key, plaintext []byte) ([]byte, error) {

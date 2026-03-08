@@ -159,6 +159,34 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+// handleListKeys returns metadata about registered encryption keys.
+func handleListKeys(provider *MultiKeyProvider) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+			return
+		}
+
+		type keyInfo struct {
+			ID      string `json:"id"`
+			Current bool   `json:"current"`
+		}
+
+		currentID := provider.CurrentKeyID()
+		ids := provider.ListKeyIDs()
+		keys := make([]keyInfo, len(ids))
+		for i, id := range ids {
+			keys[i] = keyInfo{ID: id, Current: id == currentID}
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"keys":       keys,
+			"total":      len(keys),
+			"current_id": currentID,
+		})
+	}
+}
+
 // corsMiddleware adds CORS headers for dashboard integration.
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

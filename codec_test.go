@@ -355,3 +355,39 @@ func TestCORSMiddleware(t *testing.T) {
 	}
 }
 
+func TestHandleListKeys(t *testing.T) {
+	provider := NewMultiKeyProvider("key-a")
+	key := []byte("01234567890123456789012345678901")
+	provider.AddKey("key-a", key)
+	provider.AddKey("key-b", []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"))
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/codec/keys", nil)
+	handleListKeys(provider)(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+
+	var resp map[string]any
+	json.NewDecoder(rr.Body).Decode(&resp)
+
+	if resp["current_id"] != "key-a" {
+		t.Fatalf("expected current_id 'key-a', got %q", resp["current_id"])
+	}
+	if resp["total"].(float64) != 2 {
+		t.Fatalf("expected 2 keys, got %v", resp["total"])
+	}
+}
+
+func TestListKeyIDs(t *testing.T) {
+	p := NewMultiKeyProvider("k1")
+	p.AddKey("k1", []byte("01234567890123456789012345678901"))
+	p.AddKey("k2", []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ012345"))
+
+	ids := p.ListKeyIDs()
+	if len(ids) != 2 {
+		t.Fatalf("expected 2 key IDs, got %d", len(ids))
+	}
+}
+
