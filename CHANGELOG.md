@@ -14,4 +14,3 @@ All notable changes to the OJS Codec Server will be documented in this file.
 - CORS middleware for dashboard integration
 - Dockerfile for containerized deployment
 - 17 unit tests covering crypto, handlers, and CORS
-
