@@ -131,3 +131,4 @@ docker run -p 8089:8089 \
 - **Authentication.** The spec requires authentication (JWT recommended). Add an auth middleware or API gateway in front of this service for production use.
 - **Key storage.** Use a secret manager (Vault, AWS Secrets Manager, GCP Secret Manager) instead of environment variables in production.
 - **No external dependencies.** Uses only Go standard library (`crypto/aes`, `crypto/cipher`, `crypto/rand`).
+
