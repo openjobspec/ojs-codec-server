@@ -391,3 +391,137 @@ func TestListKeyIDs(t *testing.T) {
 	}
 }
 
+func TestKeyRotation_EncodeWithNewDecodeWithOld(t *testing.T) {
+	// Simulate key rotation: encrypt with key-2, decrypt using provider that has both keys.
+	key1 := []byte("01234567890123456789012345678901")
+	key2 := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ012345")
+
+	// Phase 1: encrypt with key-1
+	p1 := NewMultiKeyProvider("key-1")
+	p1.AddKey("key-1", key1)
+
+	original := []byte(`{"secret":"data"}`)
+	b64 := base64.StdEncoding.EncodeToString(original)
+
+	encReq := CodecRequest{Payloads: []Payload{{Data: b64}}}
+	body, _ := json.Marshal(encReq)
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/codec/encode", bytes.NewReader(body))
+	handleEncode(p1)(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("encode phase 1: got status %d", rr.Code)
+	}
+	var encResp1 CodecResponse
+	json.NewDecoder(rr.Body).Decode(&encResp1)
+
+	// Phase 2: rotate to key-2 but keep key-1
+	p2 := NewMultiKeyProvider("key-2")
+	p2.AddKey("key-1", key1)
+	p2.AddKey("key-2", key2)
+
+	// Decrypt the key-1 encrypted payload using the rotated provider
+	decReq := CodecRequest{Payloads: encResp1.Payloads}
+	body, _ = json.Marshal(decReq)
+
+	rr = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPost, "/codec/decode", bytes.NewReader(body))
+	handleDecode(p2)(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("decode after rotation: got status %d, body: %s", rr.Code, rr.Body.String())
+	}
+
+	var decResp CodecResponse
+	json.NewDecoder(rr.Body).Decode(&decResp)
+
+	decoded, _ := base64.StdEncoding.DecodeString(decResp.Payloads[0].Data)
+	if !bytes.Equal(decoded, original) {
+		t.Fatalf("key rotation round-trip failed: got %q, want %q", decoded, original)
+	}
+}
+
+func TestEncodeDecodeMixedPayloads(t *testing.T) {
+	provider := testProvider(t)
+
+	// Encode some payloads
+	payloads := []Payload{
+		{Data: base64.StdEncoding.EncodeToString([]byte("encrypted-data"))},
+		{Data: base64.StdEncoding.EncodeToString([]byte("also-encrypted"))},
+	}
+	body, _ := json.Marshal(CodecRequest{Payloads: payloads})
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/codec/encode", bytes.NewReader(body))
+	handleEncode(provider)(rr, req)
+
+	var encResp CodecResponse
+	json.NewDecoder(rr.Body).Decode(&encResp)
+
+	// Mix: first payload encrypted, second is plain (no codec metadata)
+	mixed := []Payload{
+		encResp.Payloads[0],
+		{Data: base64.StdEncoding.EncodeToString([]byte("plain-data"))},
+	}
+	body, _ = json.Marshal(CodecRequest{Payloads: mixed})
+
+	rr = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodPost, "/codec/decode", bytes.NewReader(body))
+	handleDecode(provider)(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("mixed decode: got status %d, body: %s", rr.Code, rr.Body.String())
+	}
+
+	var decResp CodecResponse
+	json.NewDecoder(rr.Body).Decode(&decResp)
+
+	if len(decResp.Payloads) != 2 {
+		t.Fatalf("expected 2 payloads, got %d", len(decResp.Payloads))
+	}
+
+	// First should be decrypted
+	d1, _ := base64.StdEncoding.DecodeString(decResp.Payloads[0].Data)
+	if string(d1) != "encrypted-data" {
+		t.Errorf("payload[0] = %q, want %q", d1, "encrypted-data")
+	}
+
+	// Second should pass through unchanged
+	d2, _ := base64.StdEncoding.DecodeString(decResp.Payloads[1].Data)
+	if string(d2) != "plain-data" {
+		t.Errorf("payload[1] = %q, want %q", d2, "plain-data")
+	}
+}
+
+func TestHandleDecodeInvalidBase64(t *testing.T) {
+	provider := testProvider(t)
+	payloads := []Payload{{
+		Data: "not-valid-base64!@#$",
+		Metadata: map[string]string{
+			metaCodec: codecName,
+			metaKeyID: "test-key",
+		},
+	}}
+	body, _ := json.Marshal(CodecRequest{Payloads: payloads})
+
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/codec/decode", bytes.NewReader(body))
+	handleDecode(provider)(rr, req)
+
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid base64, got %d", rr.Code)
+	}
+}
+
+func TestHandleDecodeMethodNotAllowed(t *testing.T) {
+	provider := testProvider(t)
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/codec/decode", nil)
+	handleDecode(provider)(rr, req)
+
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected 405, got %d", rr.Code)
+	}
+}
+
