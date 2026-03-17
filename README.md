@@ -1,4 +1,5 @@
 # OJS Codec Server
+[![Stability: beta](https://img.shields.io/badge/stability-beta-yellow.svg)](https://github.com/openjobspec/openjobspec/blob/main/STABILITY.md)
 
 Standalone HTTP service that provides AES-256-GCM encryption and decryption endpoints for OJS dashboard integration.
 
