@@ -21,18 +21,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/codec/encode", handleEncode(provider))
-	mux.HandleFunc("/codec/decode", handleDecode(provider))
-	mux.HandleFunc("/codec/keys", handleListKeys(provider))
-	mux.HandleFunc("/health", handleHealth)
-
-	handler := corsMiddleware(mux)
-
 	addr := ":" + port
 	srv := &http.Server{
 		Addr:         addr,
-		Handler:      handler,
+		Handler:      newCodecHTTPHandler(provider),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
