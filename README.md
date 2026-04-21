@@ -120,10 +120,10 @@ make docker-build   # Build Docker image
 ## Docker
 
 ```bash
-docker build -t ojs-codec-server .
+docker build -t ghcr.io/openjobspec/ojs-codec-server:v0.5.0 .
 docker run -p 8089:8089 \
   -e OJS_CODEC_KEY=$(openssl rand -hex 32) \
-  ojs-codec-server
+  ghcr.io/openjobspec/ojs-codec-server:v0.5.0
 ```
 
 ## Security Notes
@@ -132,3 +132,7 @@ docker run -p 8089:8089 \
 - **Authentication.** The spec requires authentication (JWT recommended). Add an auth middleware or API gateway in front of this service for production use.
 - **Key storage.** Use a secret manager (Vault, AWS Secrets Manager, GCP Secret Manager) instead of environment variables in production.
 - **No external dependencies.** Uses only Go standard library (`crypto/aes`, `crypto/cipher`, `crypto/rand`).
+
+## License
+
+Apache License 2.0 — see [LICENSE](LICENSE) for details.
