@@ -2,6 +2,13 @@
 
 All notable changes to the OJS Codec Server will be documented in this file.
 
+## [0.4.0] - 2026-04-20
+
+### Changed
+
+- Compatibility update for OJS v0.4.0 job envelope format
+- Dependency updates
+
 ## [0.1.0] — 2026-03-07
 
 ### Added
