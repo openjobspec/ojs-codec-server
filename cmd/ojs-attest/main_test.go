@@ -129,7 +129,7 @@ func TestVerifyRejectsTamperedDigest(t *testing.T) {
 
 func TestSignRejectsMissingFlags(t *testing.T) {
 	if testing.Short() {
-		t.Skip()
+		t.Skip("skipping end-to-end test in -short mode")
 	}
 	bin := buildBin(t)
 	out, err := runErr(t, bin, "sign", "-key-id", "k1")
@@ -140,7 +140,7 @@ func TestSignRejectsMissingFlags(t *testing.T) {
 
 func TestSignRejectsHardwareTypeWithoutDocument(t *testing.T) {
 	if testing.Short() {
-		t.Skip()
+		t.Skip("skipping end-to-end test in -short mode")
 	}
 	bin := buildBin(t)
 	dir := t.TempDir()
@@ -159,7 +159,7 @@ func TestSignRejectsHardwareTypeWithoutDocument(t *testing.T) {
 
 func TestVersion(t *testing.T) {
 	if testing.Short() {
-		t.Skip()
+		t.Skip("skipping end-to-end test in -short mode")
 	}
 	bin := buildBin(t)
 	out := runOK(t, bin, "version")
