@@ -9,7 +9,6 @@
 # Go
 *.test
 *.out
-go.sum
 
 # IDE
 .idea/
