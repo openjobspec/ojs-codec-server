@@ -89,6 +89,8 @@ func loadKeys() (*MultiKeyProvider, error) {
 	// Load multi-key config: "id1:hexkey1,id2:hexkey2"
 	if multiKeys != "" {
 		pairs := strings.Split(multiKeys, ",")
+		var firstMultiKeyID string
+		firstMultiKeySet := false
 		for _, pair := range pairs {
 			pair = strings.TrimSpace(pair)
 			if pair == "" {
@@ -105,15 +107,17 @@ func loadKeys() (*MultiKeyProvider, error) {
 			if err := provider.AddKey(id, key); err != nil {
 				return nil, fmt.Errorf("OJS_CODEC_KEYS: %w", err)
 			}
+			if !firstMultiKeySet {
+				firstMultiKeyID = id
+				firstMultiKeySet = true
+			}
 			slog.Info("loaded encryption key", "key_id", id)
 		}
 
 		// If no single key was set, use the first multi-key as current
 		if singleKey == "" {
-			firstPair := strings.TrimSpace(strings.Split(multiKeys, ",")[0])
-			firstID, _, _ := strings.Cut(firstPair, ":")
 			provider.mu.Lock()
-			provider.currentID = firstID
+			provider.currentID = firstMultiKeyID
 			provider.mu.Unlock()
 		}
 	}
