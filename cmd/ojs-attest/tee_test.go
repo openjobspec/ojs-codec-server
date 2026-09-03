@@ -16,9 +16,9 @@ func pad(buf []byte, n int) []byte {
 
 func TestValidateTDXQuoteHappy(t *testing.T) {
 	doc := make([]byte, 48)
-	binary.LittleEndian.PutUint16(doc[0:2], 4)            // version 4
-	binary.LittleEndian.PutUint16(doc[2:4], 2)            // ECDSA-P256
-	binary.LittleEndian.PutUint32(doc[4:8], 0x00000081)   // TDX
+	binary.LittleEndian.PutUint16(doc[0:2], 4)          // version 4
+	binary.LittleEndian.PutUint16(doc[2:4], 2)          // ECDSA-P256
+	binary.LittleEndian.PutUint32(doc[4:8], 0x00000081) // TDX
 	doc = pad(doc, tdxQuoteMinSize)
 
 	info, err := validateTEEDocument("intel-tdx", doc)
